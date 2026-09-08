@@ -1,0 +1,87 @@
+{
+  "name": "vortix-cli",
+  "version": "0.1.1",
+  "description": "Vortix — Swiss-army-knife CLI for static site quality checks — performance, security, accessibility, bugs, maintainability & privacy.",
+  "keywords": [
+    "cli",
+    "static-site",
+    "performance",
+    "accessibility",
+    "a11y",
+    "seo",
+    "security",
+    "lighthouse",
+    "audit",
+    "quality",
+    "ci"
+  ],
+  "homepage": "https://github.com/jannikmenzel/vortix-cli#readme",
+  "bugs": {
+    "url": "https://github.com/jannikmenzel/vortix-cli/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jannikmenzel/vortix-cli.git"
+  },
+  "author": "Jannik Menzel",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "vortix": "dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup && tsc --emitDeclarationOnly --declaration --outDir dist",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --write .",
+    "format": "biome format .",
+    "format:fix": "biome format --write .",
+    "check": "biome check .",
+    "check:fix": "biome check --write .",
+    "prepare": "husky",
+    "prepublishOnly": "npm run check && npm run typecheck && npm run test && npm run build"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,mjs,cjs,json}": [
+      "biome check --write --no-errors-on-unmatched"
+    ]
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@clack/prompts": "^1.7.0",
+    "@playwright/browser-chromium": "^1.62.0",
+    "commander": "^15.0.0",
+    "jscpd": "^5.0.16",
+    "node-html-parser": "^9.0.1",
+    "picocolors": "^1.1.1",
+    "playwright": "^1.62.1",
+    "tinyglobby": "^0.2.17"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.12",
+    "@types/node": "^26.2.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.5.0",
+    "tsup": "^8.5.1",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
+  }
+}

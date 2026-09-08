@@ -1,0 +1,65 @@
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>This Page Title Is Deliberately Long Enough To Trip The Sixty Character SEO Warning</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta property="og:image" content="./og-broken.png">
+  <link rel="stylesheet" href="/style.css">
+  <!-- No <meta name="description">, no og:title/og:description, no <link rel="canonical">,
+       and og:image above points at a file that doesn't exist — seeds seo.meta-tags (missing
+       description + missing og:title/og:description + title too long), seo.canonical-url
+       (missing canonical), and seo.og-images (broken og:image reference). -->
+</head>
+<body>
+  <h1>Fixture Home</h1>
+
+  <!-- seeds performance.lazy-loading (reverse case): visible without scrolling but marked
+       loading="lazy" anyway — delays it and can hurt LCP -->
+  <img src="/icon.svg" width="48" height="48" loading="lazy" alt="Logo">
+
+  <!-- seeds bugs.broken-links (both the link and the image target are missing) -->
+  <a href="/nowhere.html">Broken internal link</a>
+  <img src="/missing.png" alt="Missing image">
+
+  <!-- seeds bugs.anchor-links: no element on this page has id="nonexistent-section" -->
+  <a href="#nonexistent-section">Jump to nowhere</a>
+
+  <!-- must NOT be flagged: id contains a "." (valid in HTML), which a naive `#${id}` selector
+       would misparse as a compound id+class selector and wrongly report as broken -->
+  <a href="#section.intro">Jump to intro</a>
+  <h2 id="section.intro">Intro</h2>
+
+  <!-- seeds bugs.nested-block-elements: interactive content nested inside <a> is invalid -->
+  <a href="/about/"><button>Should not be nested in a link</button></a>
+
+  <!-- must NOT be flagged: HTML5's transparent content model allows block content in <a> -->
+  <a href="/about/" class="card">
+    <div class="card">
+      <h2>Card title</h2>
+      <p>Card excerpt text</p>
+    </div>
+  </a>
+
+  <!-- seeds bugs.nested-block-elements: block content inside a genuinely inline element -->
+  <span><div>Block element wrongly nested in a non-transparent inline element</div></span>
+
+  <!-- seeds accessibility.axe (missing alt attribute) -->
+  <img src="/icon.svg">
+
+  <!-- seeds performance.image-format (legacy "jpg"), performance.lazy-loading (has width/height,
+       no loading="lazy"), and performance.asset-weight (this file is ~340KB, over the 300KB
+       default image budget) -->
+  <img src="/photo.jpg" width="800" height="600">
+
+  <!-- seeds accessibility.color-contrast: light gray on white is well below WCAG AA -->
+  <p style="color: #f0f0f0; background-color: #ffffff;">Low-contrast text for the color-contrast check.</p>
+
+  <!-- seeds bugs.console-errors -->
+  <script>console.error("Seeded console error for the fixture test");</script>
+
+  <!-- seeds privacy.fingerprinting -->
+  <script>const ctx = new AudioContext();</script>
+
+  <!-- No <script type="application/ld+json"> anywhere on this page — seeds seo.structured-data -->
+</body>
+</html>

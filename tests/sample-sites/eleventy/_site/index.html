@@ -1,0 +1,18 @@
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Eleventy Fixture</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A minimal Eleventy fixture site.">
+</head>
+<body>
+  <h1>Eleventy Fixture</h1>
+  <!-- seeds bugs.anchor-links: no element has id="missing-section" -->
+  <a href="#missing-section">Jump</a>
+  <!-- pushes the image below the default 720px viewport, so performance.lazy-loading
+       actually treats it as below-the-fold -->
+  <div style="height: 1000px;"></div>
+  <!-- seeds performance.lazy-loading: below the fold, has width/height, no loading="lazy" -->
+  <img src="/photo.png" width="400" height="300" alt="Sample">
+</body>
+</html>

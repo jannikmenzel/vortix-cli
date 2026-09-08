@@ -1,0 +1,18 @@
+# Changelog
+
+All notable changes to this project are documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.1.0] - 2026-09-08
+
+### Added
+
+- Initial release of Vortix CLI: `check`, `ci`, `init`, and `config` commands.
+- Static, dynamic, and live checks across performance, security, accessibility, bugs, SEO, maintainability, and privacy.
+- Built-in adapters for Astro, Eleventy, Next.js (static export), Nuxt, SvelteKit (adapter-static), Gatsby, Docusaurus, VuePress, Gridsome, Vite, MkDocs, Zola, Hugo, Hexo, and Jekyll, with a generic fallback for other static site generators.
+- `vortix init` scaffolding for `.vortix/config.json` and an optional GitHub Actions workflow.
+- Custom check API via `defineCheck` for local files or published npm packages.
+
+[0.1.0]: https://github.com/jannikmenzel/vortix-cli/releases/tag/v0.1.0

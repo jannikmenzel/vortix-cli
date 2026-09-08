@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "paths": {
+      "@core/*": ["./src/core/*"],
+      "@checks/*": ["./src/checks/*"],
+      "@adapters/*": ["./src/adapters/*"],
+      "@commands/*": ["./src/commands/*"],
+      "@dynamic/*": ["./src/dynamic/*"],
+      "@utils/*": ["./src/utils/*"]
+    },
+    "strict": true,
+    "declaration": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src"]
+}

@@ -1,0 +1,8 @@
+.card {
+  display: block;
+  border: 1px solid #ccc;
+}
+
+.unused-ghost-class {
+  color: red;
+}
