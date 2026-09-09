@@ -6,8 +6,37 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d
+        id: filter
+        with:
+          filters: |
+            code:
+              - 'src/**'
+              - 'tests/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'tsconfig.json'
+              - 'tsup.config.ts'
+              - 'vitest.config.ts'
+              - 'biome.json'
+              - '.github/workflows/ci.yml'
+
   test:
+    needs: changes
+    if: always() && (needs.changes.result == 'failure' || needs.changes.outputs.code == 'true')
     runs-on: ubuntu-latest
     strategy:
       matrix:
