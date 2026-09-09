@@ -41,6 +41,17 @@ export interface PageInfo {
   urlPath: string;
 }
 
+export interface DynamicCacheEntry {
+  contentHash: string;
+  findings: Finding[];
+  details: CheckDetail[];
+}
+
+export interface DynamicCacheFile {
+  fingerprint: string;
+  pages: Record<string, DynamicCacheEntry>;
+}
+
 export interface CapturedConsoleMessage {
   type: string;
   text: string;

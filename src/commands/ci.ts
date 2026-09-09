@@ -16,6 +16,7 @@ export async function ciCommand(options: CiOptions = {}): Promise<void> {
       {
         adapter: result.adapterName,
         pagesChecked: result.pagesChecked,
+        pagesCached: result.pagesCached,
         totalPages: result.totalPages,
         liveUrl: result.liveUrl,
         checks: result.checks,

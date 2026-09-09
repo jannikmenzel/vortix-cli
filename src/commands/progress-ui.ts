@@ -20,6 +20,16 @@ function truncateForLine(text: string, prefixLength: number, output?: Writable):
   return text.length > available ? `${text.slice(0, available - 1)}…` : text;
 }
 
+function dynamicPageMessage(
+  key: "progress.dynamicPageRunning" | "progress.dynamicPageCached",
+  event: Extract<ProgressEvent, { pageInfo: unknown }>,
+  output?: Writable
+): string {
+  const prefix = t(key, { index: event.index, total: event.total, urlPath: "" });
+  const urlPath = truncateForLine(event.pageInfo.urlPath, prefix.length, output);
+  return t(key, { index: event.index, total: event.total, urlPath });
+}
+
 export function createProgressHandler(output?: Writable): OnProgress {
   const spin = p.spinner({ output, indicator: "timer" });
   let bar: ReturnType<typeof p.progress> | undefined;
@@ -45,12 +55,12 @@ export function createProgressHandler(output?: Writable): OnProgress {
         bar = p.progress({ max: event.total, size: 30, output, indicator: "timer" });
         bar.start(t("progress.dynamicStart", { total: event.total }));
         break;
-      case "dynamic-page-start": {
-        const prefix = t("progress.dynamicPageRunning", { index: event.index, total: event.total, urlPath: "" });
-        const urlPath = truncateForLine(event.pageInfo.urlPath, prefix.length, output);
-        bar?.message(t("progress.dynamicPageRunning", { index: event.index, total: event.total, urlPath }));
+      case "dynamic-page-start":
+        bar?.message(dynamicPageMessage("progress.dynamicPageRunning", event, output));
         break;
-      }
+      case "dynamic-page-cached":
+        bar?.advance(1, dynamicPageMessage("progress.dynamicPageCached", event, output));
+        break;
       case "dynamic-page-done":
         bar?.advance(1, t("progress.dynamicPageDone", { index: event.index, total: event.total }));
         break;

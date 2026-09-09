@@ -7,16 +7,18 @@ import { exec } from "@utils/exec.js";
 import { globFiles } from "@utils/glob.js";
 import { humanizeCheckId } from "@utils/humanize.js";
 import { collectPages } from "@utils/pages.js";
-import { chromium, type Page } from "playwright";
+import { type Browser, type BrowserContext, chromium, type Page } from "playwright";
 import { createDetailFactory } from "./detail.js";
 import { createFindingFactory } from "./finding.js";
 import { loadChecks } from "./load-checks.js";
 import { t } from "./messages.js";
+import { computeDynamicFingerprint, hashPageContent, loadDynamicCache, saveDynamicCache } from "./page-cache.js";
 import { SEVERITY_RANK } from "./score.js";
 import type {
   CheckDefinition,
   CheckDetail,
   CheckSummary,
+  DynamicCacheEntry,
   DynamicCheckContext,
   Finding,
   LiveCheckContext,
@@ -39,6 +41,8 @@ export interface RunResult {
   adapterName: string;
   outputDir: string;
   pagesChecked: number;
+  /** Of pagesChecked, how many were served from the dynamic-check cache instead of a fresh browser visit. */
+  pagesCached: number;
   totalPages: number;
   liveUrl?: string;
   exitCode: number;
@@ -56,6 +60,7 @@ export type ProgressEvent =
   | { type: "static-done"; total: number }
   | { type: "dynamic-start"; index: number; total: number }
   | { type: "dynamic-page-start"; pageInfo: PageInfo; index: number; total: number }
+  | { type: "dynamic-page-cached"; pageInfo: PageInfo; index: number; total: number }
   | { type: "dynamic-page-done"; pageInfo: PageInfo; index: number; total: number }
   | { type: "dynamic-done"; total: number }
   | { type: "live-start"; url: string; index: number; total: number }
@@ -180,87 +185,149 @@ async function runVortixUnsafe(config: ResolvedConfig, onProgress: OnProgress, l
   onProgress({ type: "static-done", total: staticChecks.length });
 
   let pagesChecked = 0;
+  let pagesCached = 0;
   if (dynamicChecks.length > 0 && pages.length > 0) {
     onProgress({ type: "dynamic-start", index: 0, total: pages.length });
-    const server = await startStaticServer(outputDir);
-    let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
-    try {
-      browser = await chromium.launch({ headless: true });
-    } catch {
-      // Missing browser binaries disable dynamic checks only. Static and live checks need no
-      // browser at all and must still run below.
-      for (const check of dynamicChecks) skipped.set(check.id, t("progress.playwrightMissing"));
-    }
 
-    if (browser) {
-      try {
-        const browserContext = await browser.newContext();
+    const fingerprint = computeDynamicFingerprint(dynamicChecks, config);
+    const existingCache = loadDynamicCache(config.cwd);
+    // A fingerprint mismatch (active checks or their config changed) invalidates the whole
+    // cache, not just individual pages — a cached finding may no longer reflect current rules.
+    const cachedPages = existingCache?.fingerprint === fingerprint ? existingCache.pages : {};
+    const nextCachePages: Record<string, DynamicCacheEntry> = {};
+
+    let server: Awaited<ReturnType<typeof startStaticServer>> | undefined;
+    let browser: Browser | undefined;
+    let browserContext: BrowserContext | undefined;
+    let browserLaunchAttempted = false;
+    // Whether at least one page (cache hit or fresh visit) produced real dynamic-check results
+    // this run. Every dynamic check runs uniformly across all pages, so if any page succeeded,
+    // none of them may be reported as fully "skipped" below — even if a later page's browser
+    // launch fails, the already-recorded findings for earlier pages must still count.
+    let anyPageEvaluated = false;
+
+    try {
+      for (const [index, pageInfo] of pages.entries()) {
+        let contentHash: string | undefined;
         try {
-          for (const [index, pageInfo] of pages.entries()) {
-            onProgress({ type: "dynamic-page-start", pageInfo, index: index + 1, total: pages.length });
-            let page: Page | undefined;
-            let capture: ReturnType<typeof attachCapture> | undefined;
-            try {
-              // newPage() and attachCapture belong inside this try: if a crashed browser
-              // context fails to open a page, the failure must stay scoped to this page
-              // rather than abort the run.
-              page = await browserContext.newPage();
-              capture = attachCapture(page);
-              try {
-                await page.goto(server.url + pageInfo.urlPath, { waitUntil: "networkidle", timeout: PAGE_NAV_TIMEOUT_MS });
-              } catch {
-                // Pages with long polling, websockets or slow third-party embeds may never
-                // reach networkidle. Retry with a plain load before giving up on the page.
-                await page.goto(server.url + pageInfo.urlPath, { waitUntil: "load", timeout: PAGE_NAV_TIMEOUT_MS });
-              }
-              pagesChecked++;
-              for (const check of dynamicChecks) {
-                const ctx: DynamicCheckContext = {
-                  ...baseHelpers,
-                  mode: "dynamic",
-                  page,
-                  pageInfo,
-                  consoleMessages: capture.consoleMessages,
-                  networkRequests: capture.networkRequests,
-                  finding: createFindingFactory(check, config.severity[check.id]),
-                  detail: createDetailFactory(check, (d) => details.push(d)),
-                };
-                const result = await safeRun(check, ctx, config);
-                findings.push(...result.findings);
-                if (result.skipped) skipped.set(check.id, result.skipped);
-              }
-            } catch (error) {
-              // Isolate a single unreachable or broken page so it cannot abort dynamic checks
-              // for the rest of the site. The failure is reported as a finding on every dynamic
-              // check instead.
-              const message = t("errors.pageCrashed", {
-                url: pageInfo.urlPath,
-                message: error instanceof Error ? error.message : String(error),
-              });
-              for (const check of dynamicChecks) {
-                findings.push({
-                  checkId: check.id,
-                  category: check.category,
-                  severity: resolveSeverity(check, config),
-                  message,
-                  url: pageInfo.urlPath,
-                });
-              }
-            } finally {
-              capture?.detach();
-              await page?.close().catch(() => {});
-            }
-            onProgress({ type: "dynamic-page-done", pageInfo, index: index + 1, total: pages.length });
+          contentHash = hashPageContent(pageInfo.file);
+        } catch {
+          // An unreadable page file forces a cache miss below rather than aborting the whole
+          // run; the existing per-page crash isolation takes over from there.
+        }
+        const cached = contentHash !== undefined ? cachedPages[pageInfo.relativeFile] : undefined;
+        if (cached && cached.contentHash === contentHash) {
+          findings.push(...cached.findings);
+          details.push(...cached.details);
+          nextCachePages[pageInfo.relativeFile] = cached;
+          pagesChecked++;
+          pagesCached++;
+          anyPageEvaluated = true;
+          onProgress({ type: "dynamic-page-cached", pageInfo, index: index + 1, total: pages.length });
+          continue;
+        }
+
+        // Browser/server startup is deferred to the first cache miss, so a run where every page
+        // is still cached never pays for it at all.
+        if (!browserLaunchAttempted) {
+          browserLaunchAttempted = true;
+          server = await startStaticServer(outputDir);
+          try {
+            browser = await chromium.launch({ headless: true });
+            browserContext = await browser.newContext();
+          } catch {
+            // Missing browser binaries disable dynamic checks only. Static and live checks need
+            // no browser at all and must still run below. Whether this actually ends up skipping
+            // a check is decided after the loop, once it's known if any page still evaluated it.
+            for (const check of dynamicChecks) skipped.set(check.id, t("progress.playwrightMissing"));
+          }
+        }
+        if (!browserContext || !server) continue;
+
+        onProgress({ type: "dynamic-page-start", pageInfo, index: index + 1, total: pages.length });
+        let page: Page | undefined;
+        let capture: ReturnType<typeof attachCapture> | undefined;
+        const pageFindings: Finding[] = [];
+        const pageDetails: CheckDetail[] = [];
+        try {
+          // newPage() and attachCapture belong inside this try: if a crashed browser
+          // context fails to open a page, the failure must stay scoped to this page
+          // rather than abort the run.
+          page = await browserContext.newPage();
+          capture = attachCapture(page);
+          try {
+            await page.goto(server.url + pageInfo.urlPath, { waitUntil: "networkidle", timeout: PAGE_NAV_TIMEOUT_MS });
+          } catch {
+            // Pages with long polling, websockets or slow third-party embeds may never
+            // reach networkidle. Retry with a plain load before giving up on the page.
+            await page.goto(server.url + pageInfo.urlPath, { waitUntil: "load", timeout: PAGE_NAV_TIMEOUT_MS });
+          }
+          pagesChecked++;
+          anyPageEvaluated = true;
+          for (const check of dynamicChecks) {
+            const ctx: DynamicCheckContext = {
+              ...baseHelpers,
+              mode: "dynamic",
+              page,
+              pageInfo,
+              consoleMessages: capture.consoleMessages,
+              networkRequests: capture.networkRequests,
+              finding: createFindingFactory(check, config.severity[check.id]),
+              detail: createDetailFactory(check, (d) => pageDetails.push(d)),
+            };
+            const result = await safeRun(check, ctx, config);
+            pageFindings.push(...result.findings);
+            if (result.skipped) skipped.set(check.id, result.skipped);
+          }
+          // Cache what this page actually produced, keyed by its own content hash — a crashed
+          // page below is deliberately left uncached so a transient failure gets retried instead
+          // of replaying a crash finding forever. An unreadable page (no hash) is likewise never
+          // cached.
+          if (contentHash !== undefined) {
+            nextCachePages[pageInfo.relativeFile] = { contentHash, findings: pageFindings, details: pageDetails };
+          }
+        } catch (error) {
+          // Isolate a single unreachable or broken page so it cannot abort dynamic checks
+          // for the rest of the site. The failure is reported as a finding on every dynamic
+          // check instead.
+          const message = t("errors.pageCrashed", {
+            url: pageInfo.urlPath,
+            message: error instanceof Error ? error.message : String(error),
+          });
+          for (const check of dynamicChecks) {
+            pageFindings.push({
+              checkId: check.id,
+              category: check.category,
+              severity: resolveSeverity(check, config),
+              message,
+              url: pageInfo.urlPath,
+            });
           }
         } finally {
-          await browserContext.close();
+          findings.push(...pageFindings);
+          details.push(...pageDetails);
+          capture?.detach();
+          await page?.close().catch(() => {});
         }
-      } finally {
-        await browser.close();
+        onProgress({ type: "dynamic-page-done", pageInfo, index: index + 1, total: pages.length });
+      }
+    } finally {
+      if (browserContext) await browserContext.close();
+      if (browser) await browser.close();
+      if (server) await server.close();
+    }
+    if (anyPageEvaluated) {
+      // A later page's browser-launch failure marked every dynamic check "skipped" as a
+      // precaution, but earlier pages this run (cache hits or fresh visits) already produced
+      // real findings for all of them — undo the skip so those findings aren't dropped from the
+      // score/report.
+      const missingBrowserMessage = t("progress.playwrightMissing");
+      for (const check of dynamicChecks) {
+        if (skipped.get(check.id) === missingBrowserMessage) skipped.delete(check.id);
       }
     }
-    await server.close();
-    onProgress({ type: "dynamic-done", total: browser ? pages.length : 0 });
+    onProgress({ type: "dynamic-done", total: pagesChecked });
+    saveDynamicCache(config.cwd, { fingerprint, pages: nextCachePages });
   }
 
   if (liveChecks.length > 0) {
@@ -321,6 +388,7 @@ async function runVortixUnsafe(config: ResolvedConfig, onProgress: OnProgress, l
     adapterName: adapter.name,
     outputDir,
     pagesChecked,
+    pagesCached,
     totalPages: pages.length,
     liveUrl,
     exitCode,

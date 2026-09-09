@@ -26,6 +26,7 @@
     "staticDone": "Static checks done ({total})",
     "dynamicStart": "Dynamic checks ({index}/{total})",
     "dynamicPageRunning": "Checking page {index}/{total}: {urlPath}",
+    "dynamicPageCached": "Cached, unchanged ({index}/{total}): {urlPath}",
     "dynamicPageDone": "Dynamic checks ({index}/{total})",
     "dynamicDone": "Dynamic checks done ({total} pages)",
     "playwrightMissing": "Playwright browsers not installed — run `npx playwright install chromium`",

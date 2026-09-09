@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - CI workflow now skips the test matrix when no code-relevant files (`src/**`, `tests/**`, config files) changed since the last check, instead of always running on every push/PR.
+- `vortix check`/`vortix ci` now cache dynamic (Playwright) check results per page in `.vortix/cache.json` and only re-check pages whose content changed since the last run. The `vortix init`-generated GitHub Actions workflow persists this cache across runs via `actions/cache`.
 
 ## [0.1.1] - 2026-09-09
 
