@@ -41,6 +41,7 @@ export function startStaticServer(root: string): Promise<StaticServer> {
         return;
       }
       const resolved = path.resolve(root, `.${urlPath}`);
+      // Rejects a urlPath such as "/../../etc/passwd" that would otherwise resolve outside root.
       if (resolved !== root && !resolved.startsWith(root + path.sep)) {
         res.statusCode = 403;
         res.end("Forbidden");

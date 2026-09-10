@@ -9,6 +9,8 @@ function isInternal(href: string): boolean {
   return !/^[a-z][a-z0-9+.-]*:/i.test(href);
 }
 
+// macOS and Windows filesystems are case-insensitive, so a plain existsSync would miss a
+// wrong-case reference that breaks once deployed to a case-sensitive host.
 function existsExactCase(fullPath: string): boolean {
   const segments = fullPath.split(path.sep).filter(Boolean);
   let current = path.parse(fullPath).root || path.sep;

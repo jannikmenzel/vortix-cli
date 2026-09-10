@@ -38,6 +38,8 @@ export function computeScore(checks: CheckSummary[], findings: Finding[], skippe
     else checksByCategory.set(check.category, [check]);
   }
 
+  // Averaged per category, then across categories, so a category with many checks (e.g. seo)
+  // doesn't outweigh one with few (e.g. privacy) in the overall score.
   const categoryScores = [...checksByCategory.values()].map((categoryChecks) => {
     const total = categoryChecks.reduce((sum, check) => {
       const worst = worstByCheck.get(check.id);
@@ -49,6 +51,8 @@ export function computeScore(checks: CheckSummary[], findings: Finding[], skippe
   const value = Math.round(categoryScores.reduce((sum, s) => sum + s, 0) / categoryScores.length);
   const hasErrorFinding = [...worstByCheck.values()].some((severity) => severity === "error");
   const naturalGrade = toGrade(value);
+  // Any error-severity finding caps the grade at C, regardless of the numeric score, so one
+  // critical issue can't be averaged away by an otherwise clean run.
   const grade = hasErrorFinding ? worseOf(naturalGrade, "C") : naturalGrade;
 
   return { value, grade, cappedByError: hasErrorFinding && GRADE_RANK[naturalGrade] > GRADE_RANK.C };

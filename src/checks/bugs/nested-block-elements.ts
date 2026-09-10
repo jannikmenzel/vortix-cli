@@ -75,6 +75,8 @@ export default defineCheck({
         }
       }
 
+      // Block elements are valid inside <a> under HTML5's transparent content model, so only
+      // interactive descendants and nested anchors are checked here.
       for (const anchor of root.querySelectorAll("a")) {
         elementsChecked++;
         for (const descendant of anchor.querySelectorAll([...INTERACTIVE_ELEMENTS].filter((tag) => tag !== "a").join(", "))) {
