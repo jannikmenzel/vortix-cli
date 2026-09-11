@@ -1,6 +1,6 @@
 {
   "name": "vortix-cli",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Vortix — Swiss-army-knife CLI for static site quality checks — performance, security, accessibility, bugs, maintainability & privacy.",
   "keywords": [
     "cli",

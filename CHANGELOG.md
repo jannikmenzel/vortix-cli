@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-09-11
+
 ### Changed
 
 - CI workflow now skips the test matrix when no code-relevant files (`src/**`, `tests/**`, config files) changed since the last check, instead of always running on every push/PR.
@@ -28,5 +30,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `vortix init` scaffolding for `.vortix/config.json` and an optional GitHub Actions workflow.
 - Custom check API via `defineCheck` for local files or published npm packages.
 
+[0.1.2]: https://github.com/jannikmenzel/vortix-cli/releases/tag/v0.1.2
 [0.1.1]: https://github.com/jannikmenzel/vortix-cli/releases/tag/v0.1.1
 [0.1.0]: https://github.com/jannikmenzel/vortix-cli/releases/tag/v0.1.0
