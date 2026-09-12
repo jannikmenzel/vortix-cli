@@ -7,6 +7,8 @@
 
 Local, no-account CLI that audits static sites for performance, security, accessibility, bugs, SEO, maintainability & privacy issues. Auto-detects Astro, Eleventy, Next.js, Nuxt, SvelteKit, Gatsby, Docusaurus, VuePress, Gridsome, Vite, MkDocs, Zola, Hugo, Hexo, Jekyll — or any generator via its output folder.
 
+![vortix check demo](./media/demo.gif)
+
 ## Quick Start
 
 ```bash
