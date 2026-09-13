@@ -34,13 +34,13 @@ const GRADE_COLOR: Record<Grade, (text: string) => string> = {
   F: pc.red,
 };
 
-// Hand-drawn 4x5 block-letter glyphs used for the scorecard's grade badge.
+// Hand-drawn 6x5 block-letter glyphs used for the scorecard's grade badge.
 const GRADE_ART: Record<Grade, string[]> = {
-  A: [" ██ ", "█  █", "████", "█  █", "█  █"],
-  B: ["███ ", "█  █", "███ ", "█  █", "███ "],
-  C: ["███ ", "█   ", "█   ", "█   ", "███ "],
-  D: ["███ ", "█  █", "█  █", "█  █", "███ "],
-  F: ["████", "█   ", "███ ", "█   ", "█   "],
+  A: [" ████ ", "█    █", "██████", "█    █", "█    █"],
+  B: ["█████ ", "█    █", "█████ ", "█    █", "█████ "],
+  C: [" █████", "█     ", "█     ", "█     ", " █████"],
+  D: ["█████ ", "█    █", "█    █", "█    █", "█████ "],
+  F: ["██████", "█     ", "█████ ", "█     ", "█     "],
 };
 
 const MAX_EXAMPLE_MESSAGE_LENGTH = 70;
