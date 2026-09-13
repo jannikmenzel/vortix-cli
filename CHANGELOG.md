@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-09-13
+
+### Changed
+
+- `hashPageContent` now hashes only the `<body>` content of a page instead of the full HTML, so unrelated `<head>` churn (e.g. content-hashed bundled asset links rewritten by Vite/Rollup) no longer busts the dynamic-check cache.
+
+### Fixed
+
+- Scorecard grade badge glyphs (A–F) redrawn in a 6x5 block-letter format for better legibility.
+
 ## [0.1.2] - 2026-09-11
 
 ### Changed
@@ -30,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `vortix init` scaffolding for `.vortix/config.json` and an optional GitHub Actions workflow.
 - Custom check API via `defineCheck` for local files or published npm packages.
 
+[0.1.3]: https://github.com/jannikmenzel/vortix-cli/releases/tag/v0.1.3
 [0.1.2]: https://github.com/jannikmenzel/vortix-cli/releases/tag/v0.1.2
 [0.1.1]: https://github.com/jannikmenzel/vortix-cli/releases/tag/v0.1.1
 [0.1.0]: https://github.com/jannikmenzel/vortix-cli/releases/tag/v0.1.0
