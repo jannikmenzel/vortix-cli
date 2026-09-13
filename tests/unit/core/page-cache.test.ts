@@ -125,17 +125,55 @@ describe("computeDynamicFingerprint", () => {
 describe("hashPageContent", () => {
   it("is stable for identical content", () => {
     const file = path.join(tmpDir, "a.html");
-    writeFileSync(file, "<html></html>");
+    writeFileSync(file, "<html><body>Hello</body></html>");
     expect(hashPageContent(file)).toBe(hashPageContent(file));
   });
 
-  it("changes when the file content changes", () => {
+  it("changes when the body content changes", () => {
     const file = path.join(tmpDir, "a.html");
-    writeFileSync(file, "<html>1</html>");
+    writeFileSync(file, "<html><body>1</body></html>");
     const before = hashPageContent(file);
-    writeFileSync(file, "<html>2</html>");
+    writeFileSync(file, "<html><body>2</body></html>");
     const after = hashPageContent(file);
     expect(before).not.toBe(after);
+  });
+
+  it("is unaffected by a rotated hash in a shared bundled asset reference", () => {
+    const fileA = path.join(tmpDir, "a.html");
+    const fileB = path.join(tmpDir, "b.html");
+    writeFileSync(fileA, '<html><head><link rel="stylesheet" href="/_astro/Layout.GKUEowwm.css"></head><body>Hello</body></html>');
+    writeFileSync(fileB, '<html><head><link rel="stylesheet" href="/_astro/Layout.9zXpQrT1.css"></head><body>Hello</body></html>');
+    expect(hashPageContent(fileA)).toBe(hashPageContent(fileB));
+  });
+
+  it("is unaffected by any other <head> difference — title, meta, or a genuinely different bundled asset", () => {
+    const fileA = path.join(tmpDir, "a.html");
+    const fileB = path.join(tmpDir, "b.html");
+    writeFileSync(
+      fileA,
+      '<html><head><title>Old title</title><script src="/_astro/page-a.abc12345.js"></script></head><body>Hello</body></html>'
+    );
+    writeFileSync(
+      fileB,
+      '<html><head><title>New title</title><script src="/_astro/page-b.def67890.js"></script></head><body>Hello</body></html>'
+    );
+    expect(hashPageContent(fileA)).toBe(hashPageContent(fileB));
+  });
+
+  it("still changes when the visible body content changes, even with an identical <head>", () => {
+    const fileA = path.join(tmpDir, "a.html");
+    const fileB = path.join(tmpDir, "b.html");
+    writeFileSync(fileA, '<html><head><link rel="stylesheet" href="/_astro/Layout.GKUEowwm.css"></head><body>Hello</body></html>');
+    writeFileSync(fileB, '<html><head><link rel="stylesheet" href="/_astro/Layout.GKUEowwm.css"></head><body>Goodbye</body></html>');
+    expect(hashPageContent(fileA)).not.toBe(hashPageContent(fileB));
+  });
+
+  it("falls back to hashing the whole file when there is no <body> tag", () => {
+    const fileA = path.join(tmpDir, "a.html");
+    const fileB = path.join(tmpDir, "b.html");
+    writeFileSync(fileA, "<html>1</html>");
+    writeFileSync(fileB, "<html>2</html>");
+    expect(hashPageContent(fileA)).not.toBe(hashPageContent(fileB));
   });
 });
 

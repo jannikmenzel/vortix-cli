@@ -44,8 +44,20 @@ function sortRecord<T>(record: Record<string, T>): Record<string, T> {
   return Object.fromEntries(Object.entries(record).sort(([a], [b]) => a.localeCompare(b)));
 }
 
+/**
+ * Vite/Rollup content-hashes shared bundled assets, so unrelated changes elsewhere can rewrite
+ * every page's <head> asset links at once. Hashing only <body> keeps that churn from busting the
+ * cache; a head-only change (e.g. a new tracker script) is an accepted miss, same as before.
+ */
+const BODY_TAG = /<body\b[^>]*>([\s\S]*)<\/body>/i;
+
+function bodyOnly(html: string): string {
+  return html.match(BODY_TAG)?.[1] ?? html;
+}
+
 export function hashPageContent(filePath: string): string {
-  return createHash("sha256").update(readFileSync(filePath)).digest("hex");
+  const html = bodyOnly(readFileSync(filePath, "utf-8"));
+  return createHash("sha256").update(html).digest("hex");
 }
 
 export function loadDynamicCache(cwd: string): DynamicCacheFile | undefined {
