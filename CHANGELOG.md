@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-10-08
+
+### Fixed
+
+- The `vortix init`-generated GitHub Actions workflow now actually persists `.vortix/cache.json` across runs. It used `actions/cache`, which only saves on job success, so any run with error findings (exit code 1) never saved the cache. The workflow now uses separate `actions/cache/restore` and `actions/cache/save` steps, with the save step running under `if: always()`.
+
 ## [0.1.3] - 2026-09-13
 
 ### Changed
@@ -40,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `vortix init` scaffolding for `.vortix/config.json` and an optional GitHub Actions workflow.
 - Custom check API via `defineCheck` for local files or published npm packages.
 
+[0.1.4]: https://github.com/jannikmenzel/vortix-cli/releases/tag/v0.1.4
 [0.1.3]: https://github.com/jannikmenzel/vortix-cli/releases/tag/v0.1.3
 [0.1.2]: https://github.com/jannikmenzel/vortix-cli/releases/tag/v0.1.2
 [0.1.1]: https://github.com/jannikmenzel/vortix-cli/releases/tag/v0.1.1
