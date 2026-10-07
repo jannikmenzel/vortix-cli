@@ -53,8 +53,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 ${SETUP_STEPS[pm]}
-      - uses: actions/cache@v4
-        # Persists the dynamic-check cache (.vortix/cache.json) across runs, so \`vortix ci\`
+      - uses: actions/cache/restore@v4
+        # Restores the dynamic-check cache (.vortix/cache.json) from earlier runs, so \`vortix ci\`
         # only re-checks pages that changed since the last run instead of the whole site.
         with:
           path: .vortix/cache.json
@@ -64,5 +64,12 @@ ${SETUP_STEPS[pm]}
       - run: ${RUN_COMMAND[pm]}
         # Pass a deployed URL as an argument to also run live checks (HSTS, cookies, redirects):
         # - run: ${RUN_COMMAND[pm]} https://your-deployed-url.example.com
+      - uses: actions/cache/save@v4
+        # Saved separately with always(): \`vortix ci\` fails the job when it reports findings, and
+        # plain actions/cache only saves on success, so the cache would never persist otherwise.
+        if: always()
+        with:
+          path: .vortix/cache.json
+          key: vortix-cache-\${{ github.sha }}
 `;
 }

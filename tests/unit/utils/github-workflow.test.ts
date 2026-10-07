@@ -19,11 +19,19 @@ describe("buildGithubWorkflowYaml", () => {
 
   it("caches .vortix/cache.json across runs so the dynamic-check cache survives on ephemeral runners", () => {
     const yaml = buildGithubWorkflowYaml("npm");
-    expect(yaml).toContain("actions/cache@v4");
     expect(yaml).toContain(".vortix/cache.json");
     expect(yaml).toContain("restore-keys:");
-    // The cache step must run before `vortix ci` so the cache is in place when it runs.
-    expect(yaml.indexOf("actions/cache@v4")).toBeLessThan(yaml.indexOf("npx vortix ci"));
+    // Restore must run before `vortix ci` so the cache is in place when it runs.
+    expect(yaml.indexOf("actions/cache/restore@v4")).toBeLessThan(yaml.indexOf("npx vortix ci"));
+    expect(yaml.indexOf("npx vortix ci")).toBeLessThan(yaml.indexOf("actions/cache/save@v4"));
+  });
+
+  it("saves the cache even when `vortix ci` fails the job on findings", () => {
+    const yaml = buildGithubWorkflowYaml("npm");
+    const saveStep = yaml.slice(yaml.indexOf("actions/cache/save@v4"));
+    expect(saveStep).toContain("if: always()");
+    // Plain actions/cache only saves in its post step on job success.
+    expect(yaml).not.toContain("actions/cache@v4");
   });
 
   it("installs with npm ci and enables npm caching for the npm package manager", () => {
