@@ -13,12 +13,28 @@ export interface Finding {
   message: string;
   file?: string;
   url?: string;
+  ids?: string[];
+}
+
+export interface IgnoredFinding extends Finding {
+  ignoreReason?: string;
+}
+
+export interface IgnoreRule {
+  check?: string;
+  id?: string;
+  match?: string;
+  file?: string;
+  url?: string;
+  reason?: string;
+  until?: string;
 }
 
 export interface FindingInput {
   message: string;
   file?: string;
   url?: string;
+  ids?: string[];
   severity?: Severity;
 }
 
@@ -93,6 +109,7 @@ export interface VortixConfig {
   checks?: string[];
   disabledChecks?: string[];
   severity?: Record<string, Severity>;
+  ignore?: IgnoreRule[];
   failOn?: Severity;
   performance?: {
     budgets?: {
@@ -116,6 +133,7 @@ export interface ResolvedConfig {
   checks: string[];
   disabledChecks: string[];
   severity: Record<string, Severity>;
+  ignore: IgnoreRule[];
   performance: {
     budgets: {
       lcpMs: number;

@@ -54,7 +54,10 @@ export function printReport(result: RunResult): void {
   for (const message of result.configErrors) {
     lines.push(pc.yellow(`⚠ ${t("report.configErrorPrefix")}: ${message}`));
   }
-  if (result.configErrors.length > 0) lines.push("");
+  for (const message of result.warnings) {
+    lines.push(pc.yellow(`⚠ ${t("report.configWarningPrefix")}: ${message}`));
+  }
+  if (result.configErrors.length + result.warnings.length > 0) lines.push("");
 
   lines.push(pc.bold(`\n${buildHeader(result)}\n`));
   lines.push(buildScoreCard(result));
@@ -191,7 +194,10 @@ export function buildFullReport(result: RunResult): string {
   for (const message of result.configErrors) {
     lines.push(`⚠ ${t("report.configErrorPrefix")}: ${message}`);
   }
-  if (result.configErrors.length > 0) lines.push("");
+  for (const message of result.warnings) {
+    lines.push(`⚠ ${t("report.configWarningPrefix")}: ${message}`);
+  }
+  if (result.configErrors.length + result.warnings.length > 0) lines.push("");
 
   lines.push(t("report.header", { adapter: result.adapterName, totalPages: result.totalPages, pagesChecked: result.pagesChecked }));
   lines.push("");
@@ -249,6 +255,9 @@ function scoreNotes(result: RunResult, score: Score): string[] {
   const hasLiveChecks = result.checks.some((c) => c.mode === "live");
   if (hasLiveChecks && !result.liveUrl) {
     notes.push(t("report.scoreLiveSkippedNote"));
+  }
+  if (result.ignored.length > 0) {
+    notes.push(t(result.ignored.length === 1 ? "report.ignoredNoteOne" : "report.ignoredNote", { count: result.ignored.length }));
   }
   return notes;
 }

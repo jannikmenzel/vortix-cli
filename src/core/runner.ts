@@ -10,6 +10,7 @@ import { collectPages } from "@utils/pages.js";
 import { type Browser, type BrowserContext, chromium, type Page } from "playwright";
 import { createDetailFactory } from "./detail.js";
 import { createFindingFactory } from "./finding.js";
+import { applyIgnoreRules } from "./ignore.js";
 import { loadChecks } from "./load-checks.js";
 import { t } from "./messages.js";
 import { computeDynamicFingerprint, hashPageContent, loadDynamicCache, saveDynamicCache } from "./page-cache.js";
@@ -21,6 +22,7 @@ import type {
   DynamicCacheEntry,
   DynamicCheckContext,
   Finding,
+  IgnoredFinding,
   LiveCheckContext,
   PageInfo,
   ResolvedConfig,
@@ -35,6 +37,7 @@ const LIVE_FETCH_TIMEOUT_MS = 15_000;
 
 export interface RunResult {
   findings: Finding[];
+  ignored: IgnoredFinding[];
   details: CheckDetail[];
   checks: CheckSummary[];
   skipped: Record<string, string>;
@@ -48,6 +51,7 @@ export interface RunResult {
   exitCode: number;
   /** Custom check modules from config.checks[] that failed to load. Never fatal to the run. */
   configErrors: string[];
+  warnings: string[];
 }
 
 class CheckSkipped extends Error {}
@@ -378,10 +382,15 @@ async function runVortixUnsafe(config: ResolvedConfig, onProgress: OnProgress, l
     }
   }
 
-  const exitCode = computeExitCode(findings, config);
+  const { kept, ignored, warnings } = applyIgnoreRules(findings, config.ignore ?? [], new Date(), {
+    ranCheckIds: checks.map((c) => c.id).filter((id) => !skipped.has(id)),
+    partial: skipped.size > 0,
+  });
+  const exitCode = computeExitCode(kept, config);
 
   return {
-    findings,
+    findings: kept,
+    ignored,
     details,
     checks: [...checkSummaries.values()],
     skipped: Object.fromEntries(skipped),
@@ -393,6 +402,7 @@ async function runVortixUnsafe(config: ResolvedConfig, onProgress: OnProgress, l
     liveUrl,
     exitCode,
     configErrors,
+    warnings,
   };
 }
 

@@ -63,6 +63,33 @@ export default defineCheck({
 
 Reference a local path or a published npm package in `checks: []`.
 
+## Ignoring findings
+
+`disabledChecks` turns off a whole check. `ignore` skips single findings:
+
+```json
+{
+  "ignore": [
+    { "id": "GHSA-fc5q-39xc-vjpf", "reason": "no patched picomatch yet", "until": "2027-01-31" },
+    { "check": "seo.*", "url": "/drafts/" },
+    { "check": "bugs.broken-links", "match": "/example\\.com/i" }
+  ]
+}
+```
+
+| Field | Matches |
+| --- | --- |
+| `check` | check id, `*` at the end as wildcard |
+| `id` | advisory id, e.g. from `npm audit` |
+| `match` | text in the message, or `/regex/flags` |
+| `file`, `url` | text in the file path or URL |
+
+All given fields must match. `reason` is shown in the output. After `until` (`YYYY-MM-DD`) the rule stops applying.
+
+Ignored findings don't count toward the exit code or score. `vortix ci` lists them under `ignored`. Rules that match nothing or have expired show up as warnings.
+
+`npm audit` findings carry the advisory ids of their root cause. Ignoring one id also covers every package that is only affected through it.
+
 ## Included checks
 
 | Category | Checks |

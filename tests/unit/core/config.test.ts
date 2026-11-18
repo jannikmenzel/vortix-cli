@@ -64,6 +64,20 @@ describe("loadConfig", () => {
     expect(config.privacy.trackerDomains).toContain("example.com");
   });
 
+  it("defaults ignore to an empty list", () => {
+    expect(loadConfig(tmpDir).ignore).toEqual([]);
+  });
+
+  it("reads ignore rules", () => {
+    writeConfig({ ignore: [{ id: "GHSA-fc5q-39xc-vjpf", reason: "no fix yet", until: "2027-01-31" }] });
+    expect(loadConfig(tmpDir).ignore).toEqual([{ id: "GHSA-fc5q-39xc-vjpf", reason: "no fix yet", until: "2027-01-31" }]);
+  });
+
+  it("throws when ignore is not a list", () => {
+    writeConfig({ ignore: { id: "GHSA-fc5q-39xc-vjpf" } });
+    expect(() => loadConfig(tmpDir)).toThrow(/ignore/);
+  });
+
   it("sets cwd to the provided path", () => {
     const config = loadConfig(tmpDir);
     expect(config.cwd).toBe(tmpDir);

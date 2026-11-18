@@ -21,6 +21,7 @@ export function buildConfig(cwd: string, overrides: Partial<ResolvedConfig> = {}
       privacy: true,
     },
     checks: [],
+    ignore: [],
     disabledChecks: [],
     severity: {},
     performance: {

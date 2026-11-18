@@ -21,9 +21,11 @@ export async function ciCommand(options: CiOptions = {}): Promise<void> {
         liveUrl: result.liveUrl,
         checks: result.checks,
         findings: result.findings,
+        ignored: result.ignored,
         details: result.details,
         skipped: result.skipped,
         configErrors: result.configErrors,
+        warnings: result.warnings,
       },
       null,
       2

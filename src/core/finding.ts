@@ -8,5 +8,6 @@ export function createFindingFactory(check: CheckDefinition, configuredSeverity:
     message: input.message,
     file: input.file,
     url: input.url,
+    ...(input.ids && input.ids.length > 0 ? { ids: input.ids } : {}),
   });
 }

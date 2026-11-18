@@ -10,6 +10,9 @@ export async function runInteractiveReport(result: RunResult): Promise<void> {
   for (const message of result.configErrors) {
     console.log(pc.yellow(`⚠ ${t("report.configErrorPrefix")}: ${message}`));
   }
+  for (const message of result.warnings) {
+    console.log(pc.yellow(`⚠ ${t("report.configWarningPrefix")}: ${message}`));
+  }
 
   console.log(`\n${pc.bold(buildHeader(result))}\n`);
   // Printed as soon as the checks finish, rather than behind the "Done" option below.

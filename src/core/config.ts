@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { t } from "./messages.js";
-import type { ResolvedConfig, VortixConfig } from "./types.js";
+import type { IgnoreRule, ResolvedConfig, VortixConfig } from "./types.js";
 
 export const CONFIG_DIR = ".vortix";
 export const CONFIG_FILE = "config.json";
@@ -22,6 +22,7 @@ const DEFAULTS: Omit<ResolvedConfig, "cwd"> = {
   checks: [],
   disabledChecks: [],
   severity: {},
+  ignore: [],
   performance: {
     budgets: { lcpMs: 2500, cls: 0.1, maxPageWeightKb: 1500, maxImageKb: 300 },
   },
@@ -70,6 +71,7 @@ function mergeConfig(cwd: string, user: VortixConfig): ResolvedConfig {
     checks: user.checks ?? DEFAULTS.checks,
     disabledChecks: user.disabledChecks ?? DEFAULTS.disabledChecks,
     severity: { ...DEFAULTS.severity, ...user.severity },
+    ignore: readIgnoreRules(user.ignore),
     performance: {
       budgets: { ...DEFAULTS.performance.budgets, ...user.performance?.budgets },
     },
@@ -77,4 +79,12 @@ function mergeConfig(cwd: string, user: VortixConfig): ResolvedConfig {
       trackerDomains: [...DEFAULTS.privacy.trackerDomains, ...(user.privacy?.trackerDomains ?? [])],
     },
   };
+}
+
+function readIgnoreRules(value: unknown): IgnoreRule[] {
+  if (value === undefined) return [...DEFAULTS.ignore];
+  if (!Array.isArray(value) || value.some((rule) => typeof rule !== "object" || rule === null || Array.isArray(rule))) {
+    throw new Error(t("errors.configIgnoreInvalid"));
+  }
+  return value as IgnoreRule[];
 }

@@ -1,4 +1,4 @@
-import { buildScoreCard } from "@core/report.js";
+import { buildFullReport, buildScoreCard } from "@core/report.js";
 import type { RunResult } from "@core/runner.js";
 import type { CheckSummary, Finding } from "@core/types.js";
 import { describe, expect, it } from "vitest";
@@ -16,6 +16,7 @@ const CHECKS: CheckSummary[] = [
 function buildResult(overrides: Partial<RunResult> = {}): RunResult {
   return {
     findings: [],
+    ignored: [],
     details: [],
     checks: CHECKS,
     skipped: {},
@@ -25,6 +26,7 @@ function buildResult(overrides: Partial<RunResult> = {}): RunResult {
     totalPages: 3,
     exitCode: 0,
     configErrors: [],
+    warnings: [],
     ...overrides,
   };
 }
@@ -75,5 +77,22 @@ describe("buildScoreCard", () => {
     // identical offsets for the grid to actually look like a grid.
     expect((row1 as string).indexOf("performance")).toBe((row2 as string).indexOf("bugs"));
     expect((row1 as string).indexOf("security")).toBe((row2 as string).indexOf("seo"));
+  });
+});
+
+describe("buildFullReport", () => {
+  it("mentions how many findings were ignored", () => {
+    const ignored = [{ checkId: "seo.a", category: "seo" as const, severity: "error" as const, message: "x", ignoreReason: "later" }];
+    expect(buildFullReport(buildResult({ ignored }))).toContain("1 finding ignored");
+  });
+
+  it("does not mention ignored findings when there are none", () => {
+    expect(buildFullReport(buildResult())).not.toMatch(/ignored/);
+  });
+
+  it("prints config warnings separately from load errors", () => {
+    const report = buildFullReport(buildResult({ warnings: ["ignore rule (id=X) matched no findings"] }));
+    expect(report).toContain("Config warning: ignore rule (id=X) matched no findings");
+    expect(report).not.toContain("Custom check failed to load");
   });
 });
