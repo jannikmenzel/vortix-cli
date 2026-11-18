@@ -78,16 +78,30 @@ function computeExitCode(findings: Finding[], config: ResolvedConfig): number {
   return findings.some((f) => SEVERITY_RANK[f.severity] >= SEVERITY_RANK[config.failOn]) ? 1 : 0;
 }
 
-export async function runVortix(config: ResolvedConfig, onProgress: OnProgress = () => {}, liveUrl?: string): Promise<RunResult> {
+export interface RunOptions {
+  staticOnly?: boolean;
+}
+
+export async function runVortix(
+  config: ResolvedConfig,
+  onProgress: OnProgress = () => {},
+  liveUrl?: string,
+  options: RunOptions = {}
+): Promise<RunResult> {
   try {
-    return await runVortixUnsafe(config, onProgress, liveUrl);
+    return await runVortixUnsafe(config, onProgress, options.staticOnly ? undefined : liveUrl, options);
   } catch (error) {
     onProgress({ type: "aborted" });
     throw error;
   }
 }
 
-async function runVortixUnsafe(config: ResolvedConfig, onProgress: OnProgress, liveUrl?: string): Promise<RunResult> {
+async function runVortixUnsafe(
+  config: ResolvedConfig,
+  onProgress: OnProgress,
+  liveUrl: string | undefined,
+  options: RunOptions
+): Promise<RunResult> {
   const adapter = resolveAdapter(config.cwd, config.target, config.build);
   const declaredOutputDir = path.resolve(config.cwd, adapter.outputDir);
 
@@ -106,7 +120,8 @@ async function runVortixUnsafe(config: ResolvedConfig, onProgress: OnProgress, l
   }
   const outputDir = adapter.resolveServeDir?.(declaredOutputDir) ?? declaredOutputDir;
 
-  const { checks, loadErrors } = await loadChecks(config);
+  const { checks: loadedChecks, loadErrors } = await loadChecks(config);
+  const checks = options.staticOnly ? loadedChecks.filter((c) => c.mode === "static") : loadedChecks;
   const configErrors = loadErrors.map((e) => `${e.specifier}: ${e.message}`);
   const staticChecks = checks.filter((c) => c.mode === "static");
   const dynamicChecks = checks.filter((c) => c.mode === "dynamic");
@@ -384,7 +399,7 @@ async function runVortixUnsafe(config: ResolvedConfig, onProgress: OnProgress, l
 
   const { kept, ignored, warnings } = applyIgnoreRules(findings, config.ignore ?? [], new Date(), {
     ranCheckIds: checks.map((c) => c.id).filter((id) => !skipped.has(id)),
-    partial: skipped.size > 0,
+    partial: Boolean(options.staticOnly) || skipped.size > 0,
   });
   const exitCode = computeExitCode(kept, config);
 

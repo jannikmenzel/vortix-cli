@@ -249,7 +249,7 @@ export function buildHeader(result: RunResult): string {
 function scoreNotes(result: RunResult, score: Score): string[] {
   const notes: string[] = [];
   if (score.cappedByError) notes.push(`(${t("report.scoreCappedNote")})`);
-  if (result.pagesChecked < result.totalPages) {
+  if (result.checks.some((c) => c.mode === "dynamic") && result.pagesChecked < result.totalPages) {
     notes.push(t("report.scorePartialPagesNote", { pagesChecked: result.pagesChecked, totalPages: result.totalPages }));
   }
   const hasLiveChecks = result.checks.some((c) => c.mode === "live");

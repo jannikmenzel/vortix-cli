@@ -25,9 +25,23 @@ Node.js `>=20` required. Chromium downloads automatically via `@playwright/brows
 npx vortix check
 npx vortix check https://example.com
 npx vortix ci
+npx vortix ci --static
+npx vortix hook install
 ```
 
 Checks run in one of three modes: **static** (built files on disk), **dynamic** (headless browser), **live** (a real HTTP request — only when you pass a URL, otherwise shown as skipped).
+
+`--static` runs only the static checks: no browser, no live request. `--no-interactive` prints the `check` report without prompts.
+
+## Pre-commit hook
+
+```bash
+npx vortix hook install          # static checks before every commit
+npx vortix hook install --full   # all checks, including the browser
+npx vortix hook uninstall
+```
+
+The hook goes to `.git/hooks/pre-commit` and respects `core.hooksPath`. An existing hook that vortix did not write is never overwritten. With Husky, vortix prints the line to add to `.husky/pre-commit` instead. `vortix init` offers the same choice.
 
 ## Config
 

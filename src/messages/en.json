@@ -3,8 +3,18 @@
     "description": "Swiss-army-knife CLI for quality checks on static websites.",
     "init": { "description": "Interactively configure vortix for this project" },
     "config": { "description": "Adjust vortix settings for this project" },
-    "check": { "description": "Run checks locally with a human-readable report" },
-    "ci": { "description": "Run checks non-interactively — JSON output + exit code for automation" }
+    "check": {
+      "description": "Run checks locally with a human-readable report",
+      "noInteractiveOption": "Print the report without prompts"
+    },
+    "ci": { "description": "Run checks non-interactively — JSON output + exit code for automation" },
+    "staticOption": "Only run static checks - no browser, no live URL",
+    "hook": {
+      "description": "Manage the git pre-commit hook",
+      "installDescription": "Run vortix before every commit",
+      "uninstallDescription": "Remove the vortix pre-commit hook",
+      "fullOption": "Also run dynamic checks in the browser (slower)"
+    }
   },
   "errors": {
     "outputDirMissing": "Output directory \"{dir}\" does not exist after the build. Check target.outputDir in .vortix/config.json.",
@@ -26,6 +36,17 @@
     "invalidRegex": "ignore rule ({rule}) has an invalid regex and was skipped: {message}",
     "invalidField": "ignore rule ({rule}) has a non-text \"{field}\" and was skipped",
     "noMatcher": "ignore rule {rule} needs at least one of check, id, match, file or url and was skipped"
+  },
+  "hook": {
+    "notGitRepo": "Not inside a git repository - run \"git init\" first",
+    "installed": "Pre-commit hook installed at {path}",
+    "updated": "Pre-commit hook updated at {path}",
+    "foreign": "{path} already exists and was not written by vortix - add this line to it yourself: {command}",
+    "husky": "Husky detected - add this line to {path}: {command}",
+    "removed": "Pre-commit hook removed from {path}",
+    "missing": "No pre-commit hook found at {path}",
+    "foreignUninstall": "{path} was not written by vortix and was left as is",
+    "huskyUninstall": "Husky detected - remove the vortix line from {path} yourself"
   },
   "progress": {
     "building": "Building project",
@@ -59,6 +80,10 @@
     "abortedKept": "Aborted — existing config was not changed.",
     "done": "Configuration saved to .vortix/config.json. Get started with: {cmd}",
     "pickGithubWorkflow": "Set up a GitHub Actions workflow that runs `vortix ci` on every push and pull request?",
+    "pickPreCommitHook": "Run vortix before every commit?",
+    "preCommitNone": "No",
+    "preCommitStatic": "Yes, static checks only (fast)",
+    "preCommitFull": "Yes, all checks including the browser (slower)",
     "githubWorkflowExists": "{path} already exists. Overwrite?",
     "githubWorkflowDone": "GitHub Actions workflow written to {path}",
     "githubWorkflowSkipped": "Skipped — existing workflow was not changed."

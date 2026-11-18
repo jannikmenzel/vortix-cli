@@ -9,14 +9,16 @@ import { createProgressHandler } from "./progress-ui.js";
 
 interface CheckOptions {
   url?: string;
+  staticOnly?: boolean;
+  interactive?: boolean;
 }
 
 export async function checkCommand(options: CheckOptions = {}): Promise<void> {
   const config = loadConfig(process.cwd());
 
-  const result = await runVortix(config, createProgressHandler(), options.url);
+  const result = await runVortix(config, createProgressHandler(), options.url, { staticOnly: options.staticOnly });
 
-  if (process.stdout.isTTY) {
+  if (process.stdout.isTTY && options.interactive !== false) {
     await runInteractiveReport(result);
 
     const shouldCopy = await p.confirm({ message: t("report.copyPrompt"), initialValue: true });

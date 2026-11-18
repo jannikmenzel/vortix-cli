@@ -6,9 +6,11 @@ import { CONFIG_DIR, getConfigPath } from "@core/config.js";
 import { t } from "@core/messages.js";
 import type { Category, Severity, VortixConfig } from "@core/types.js";
 import { CATEGORIES } from "@core/types.js";
+import type { HookMode } from "@utils/git-hook.js";
 import { buildGithubWorkflowYaml, getGithubWorkflowPath } from "@utils/github-workflow.js";
 import { detectPackageManager } from "@utils/package-manager.js";
 import pc from "picocolors";
+import { hookInstallCommand } from "./hook.js";
 
 export async function initCommand(): Promise<void> {
   const cwd = process.cwd();
@@ -27,8 +29,27 @@ export async function initCommand(): Promise<void> {
   writeFileSync(configPath, `${JSON.stringify(result, null, 2)}\n`, "utf-8");
 
   await promptGithubWorkflow(cwd);
+  await promptPreCommitHook(cwd);
 
   p.outro(pc.green(t("init.done", { cmd: pc.bold("npx vortix check") })));
+}
+
+async function promptPreCommitHook(cwd: string): Promise<void> {
+  const mode = await p.select<HookMode | "none">({
+    message: t("init.pickPreCommitHook"),
+    options: [
+      { value: "none", label: t("init.preCommitNone") },
+      { value: "static", label: t("init.preCommitStatic") },
+      { value: "full", label: t("init.preCommitFull") },
+    ],
+    initialValue: "none",
+  });
+  if (p.isCancel(mode) || mode === "none") return;
+  try {
+    hookInstallCommand({ mode }, cwd);
+  } catch (error) {
+    p.log.warn((error as Error).message);
+  }
 }
 
 async function promptGithubWorkflow(cwd: string): Promise<void> {

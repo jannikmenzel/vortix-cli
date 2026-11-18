@@ -4,12 +4,13 @@ import { createProgressHandler } from "./progress-ui.js";
 
 interface CiOptions {
   url?: string;
+  staticOnly?: boolean;
 }
 
 export async function ciCommand(options: CiOptions = {}): Promise<void> {
   const config = loadConfig(process.cwd());
 
-  const result = await runVortix(config, createProgressHandler(process.stderr), options.url);
+  const result = await runVortix(config, createProgressHandler(process.stderr), options.url, { staticOnly: options.staticOnly });
 
   console.log(
     JSON.stringify(
