@@ -10,9 +10,54 @@ const SEVERITY_MAP: Record<string, Severity> = {
   info: "info",
 };
 
+type AuditVia = string | { title?: string; url?: string };
+
+interface AuditVulnerability {
+  severity: string;
+  via?: AuditVia[];
+}
+
 interface NpmAuditReport {
-  vulnerabilities?: Record<string, { severity: string; via?: { title?: string }[] }>;
+  vulnerabilities?: Record<string, AuditVulnerability>;
   error?: { code?: string; summary?: string };
+}
+
+export interface VulnerabilityEntry {
+  name: string;
+  severity: string;
+  message: string;
+  ids: string[];
+}
+
+const ADVISORY_ID = /(GHSA(?:-[a-z0-9]{4}){3})/i;
+
+export function describeVulnerabilities(report: NpmAuditReport): VulnerabilityEntry[] {
+  const vulnerabilities = report.vulnerabilities ?? {};
+
+  const collectIds = (name: string, seen: Set<string>): Set<string> => {
+    const ids = new Set<string>();
+    if (seen.has(name)) return ids;
+    seen.add(name);
+    for (const via of vulnerabilities[name]?.via ?? []) {
+      if (typeof via === "string") {
+        for (const id of collectIds(via, seen)) ids.add(id);
+      } else {
+        const match = via.url ? ADVISORY_ID.exec(via.url) : null;
+        if (match) ids.add(match[1]);
+      }
+    }
+    return ids;
+  };
+
+  return Object.entries(vulnerabilities).map(([name, info]) => {
+    const via = info.via ?? [];
+    const ids = [...collectIds(name, new Set())].sort();
+    const parents = [...new Set(via.filter((v): v is string => typeof v === "string"))].sort();
+    const direct = via.find((v): v is { title?: string } => typeof v === "object" && Boolean(v.title));
+    const origin = direct ? ` (${direct.title})` : parents.length > 0 ? ` via ${parents.join(", ")}` : "";
+    const suffix = ids.length > 0 ? ` [${ids.join(", ")}]` : "";
+    return { name, severity: info.severity, message: `${name}: ${info.severity} severity vulnerability${origin}${suffix}`, ids };
+  });
 }
 
 export default defineCheck({
@@ -48,13 +93,14 @@ export default defineCheck({
       ctx.skip(`npm audit failed: ${report.error.summary ?? report.error.code ?? "unknown error"}`);
     }
 
-    const vulnerabilities = Object.entries(report.vulnerabilities ?? {});
-    ctx.detail({ label: "Vulnerable dependencies found", value: String(vulnerabilities.length) });
+    const entries = describeVulnerabilities(report);
+    ctx.detail({ label: "Vulnerable dependencies found", value: String(entries.length) });
 
-    return vulnerabilities.map(([name, info]) =>
+    return entries.map((entry) =>
       ctx.finding({
-        message: `${name}: ${info.severity} severity vulnerability${info.via?.[0]?.title ? ` (${info.via[0].title})` : ""}`,
-        severity: SEVERITY_MAP[info.severity] ?? "warn",
+        message: entry.message,
+        ids: entry.ids,
+        severity: SEVERITY_MAP[entry.severity] ?? "warn",
       })
     );
   },
